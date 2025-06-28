@@ -1,0 +1,9 @@
+{
+    "python.terminal.activateEnvironment": false,
+    "python.analysis.extraPaths": [
+        "/home/sam/dev/sam/python/robocorp/robot_spare_bin_order_processor/."
+    ],
+    "cSpell.words": [
+        "robocorp"
+    ]
+}
