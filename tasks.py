@@ -3,8 +3,12 @@ from robocorp.tasks import task
 
 from RPA.PDF import PDF
 from RPA.HTTP import HTTP
-from RPA.Tables import Tables, Table
 from RPA.Archive import Archive
+from RPA.Assistant import Assistant
+from RPA.Tables import Tables, Table
+
+# "https://robotsparebinindustries.com/#/robot-order"
+
 
 @task
 def order_robots_from_robot_spare_bin() -> None:
@@ -15,6 +19,12 @@ def order_robots_from_robot_spare_bin() -> None:
     Embeds the screenshot of the robot to the PDF receipt.
     Creates ZIP archive of the receipts and the images.
     """
+    robot_spare_bin_url = get_user_input()
+    if not robot_spare_bin_url:
+        print("Invalid URL provided")
+
+        return
+
     orders = get_orders_from_csv_file()
     if orders is None or orders.size < 1:
         print("Failed to get the list of orders")
@@ -22,7 +32,7 @@ def order_robots_from_robot_spare_bin() -> None:
         return
 
     browser.configure(slowmo = 100)
-    open_robot_order_website()
+    open_robot_order_website(robot_spare_bin_url)
 
     for order in orders:
         try:
@@ -32,7 +42,7 @@ def order_robots_from_robot_spare_bin() -> None:
             fill_the_form(order)
             receipt_path = store_receipt_as_pdf(order_id)
             if not receipt_path:
-                print("There was an error on the website while filling order:", order_id, ', will retry...')
+                print("There was an error on the website while filling order:", order_id)
                 continue
 
             screenshot_path = screenshot_robot(order_id)
@@ -42,6 +52,17 @@ def order_robots_from_robot_spare_bin() -> None:
             print(f"An unknown error occurred while processing order {order['Order number']}: {error}")
 
     archive_receipts()
+
+
+def get_user_input() -> str:
+    """Request link from the user"""
+    assistant = Assistant()
+    assistant.add_heading("Input from user")
+    assistant.add_text_input("text_input", placeholder = "Please enter URL")
+    assistant.add_submit_buttons("Submit", default = "Submit")
+    result = assistant.run_dialog()
+
+    return result.text_input
 
 
 def get_orders_from_csv_file() -> Table | None:
@@ -58,10 +79,9 @@ def get_orders_from_csv_file() -> Table | None:
         pass
 
 
-def open_robot_order_website() -> None:
+def open_robot_order_website(url: str) -> None:
     """Open the RobotSpareBin website"""
-    robot_spare_bin_url = "https://robotsparebinindustries.com/#/robot-order"
-    browser.goto(robot_spare_bin_url)
+    browser.goto(url)
 
 
 def close_annoying_modal() -> None:
@@ -139,7 +159,7 @@ def open_add_another_order_page() -> None:
     page.click("button#order-another")
 
 
-def archive_receipts():
+def archive_receipts() -> None:
     """Archive The folder with the receipts"""
     archive = Archive()
     archive.archive_folder_with_zip('output/receipts', 'output/receipts.zip', recursive = True)
